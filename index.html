@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Galeria Online</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+  <h1>Galeria Online</h1>
+  <div class="gallery">
+    <!-- Galeria de fotos e vídeos -->
+  </div>
+  <button id="uploadBtn">Adicionar foto/vídeo</button>
+  <div class="modal" id="uploadModal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Upload de mídia</h2>
+      <form id="uploadForm">
+        <label for="media">Selecione uma mídia:</label>
+        <input type="file" id="media" name="media" accept="image/*,video/*">
+        <label for="caption">Legenda:</label>
+        <input type="text" id="caption" name="caption" placeholder="Digite uma legenda">
+        <label for="password">Senha:</label>
+        <input type="password" id="password" name="password" placeholder="Digite uma senha">
+        <button type="submit">Enviar</button>
+      </form>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
