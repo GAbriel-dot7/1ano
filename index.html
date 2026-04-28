@@ -1,30 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Galeria Online</title>
-  <link rel="stylesheet" type="text/css" href="styles.css">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Google Fonts para um visual mais fofo -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Título principal -->
   <h1>Galeria Online</h1>
-  <div class="gallery">
-    <!-- Galeria de fotos e vídeos -->
+
+  <!-- Galeria de fotos e vídeos -->
+  <div class="gallery" id="gallery">
+    <!-- Itens da galeria são inseridos via JS -->
   </div>
-  <button id="uploadBtn">Adicionar foto/vídeo</button>
-  <div class="modal" id="uploadModal">
+
+  <!-- Botão para abrir o modal de upload -->
+  <button id="uploadBtn" aria-label="Adicionar foto ou vídeo">Adicionar foto/vídeo</button>
+
+  <!-- Modal de upload -->
+  <div class="modal" id="uploadModal" aria-modal="true" role="dialog">
     <div class="modal-content">
-      <span class="close">&times;</span>
+      <span class="close" title="Fechar">&times;</span>
       <h2>Upload de mídia</h2>
-      <form id="uploadForm">
+      <form id="uploadForm" class="upload-form">
         <label for="media">Selecione uma mídia:</label>
-        <input type="file" id="media" name="media" accept="image/*,video/*">
+        <input type="file" id="media" name="media" accept="image/*,video/*" required>
         <label for="caption">Legenda:</label>
-        <input type="text" id="caption" name="caption" placeholder="Digite uma legenda">
+        <input type="text" id="caption" name="caption" placeholder="Digite uma legenda" maxlength="80" required>
         <label for="password">Senha:</label>
-        <input type="password" id="password" name="password" placeholder="Digite uma senha">
+        <input type="password" id="password" name="password" placeholder="Digite a senha" required>
         <button type="submit">Enviar</button>
       </form>
     </div>
   </div>
+
+  <!-- Script principal -->
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,2 @@
+Ideia do Projeto
+Criar uma galeria online simples para fotos e vídeos, onde qualquer pessoa com o link pode adicionar mídias com legenda. Não há cadastro ou login, apenas uma senha única para uploads. O objetivo é ser prático, seguro e fácil de usar, inspirado em plataformas como Instagram/YouTube, mas focado na simplicidade.
