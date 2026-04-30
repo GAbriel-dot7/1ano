@@ -9,13 +9,59 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Título principal -->
-  <h1>Galeria Online</h1>
 
-  <!-- Galeria de fotos e vídeos -->
-  <div class="gallery" id="gallery">
-    <!-- Itens da galeria são inseridos via JS -->
+  <!-- Barra superior fixa -->
+  <header>
+    <h1>Galeria Online</h1>
+  </header>
+
+
+  <!-- Modal de login -->
+  <div class="modal" id="loginModal" aria-modal="true" role="dialog" style="display:none;">
+    <div class="modal-content">
+      <h2>Bem-vindo à Galeria!</h2>
+      <form id="loginForm">
+        <label for="loginPassword">Senha de acesso:</label>
+        <input type="password" id="loginPassword" name="loginPassword" placeholder="Digite a senha" required>
+        <button type="submit">Entrar</button>
+      </form>
+      <p id="loginError" style="
+        color: var(--rosa-escuro); 
+        background: var(--rosa-claro); 
+        border-radius: 12px; 
+        padding: 10px 16px; 
+        margin-top: 16px; 
+        margin-bottom: 0; 
+        font-weight: bold; 
+        font-size: 1.1rem; 
+        display: none; 
+        text-align: center; ">
+        Não é essa bobinha! É o nosso apelido carinhoso, você sabe!
+      </p>
+    </div>
   </div>
+
+
+  <!-- Container principal -->
+  <main>
+    <!-- Campo de busca e ordenação -->
+    <div style="max-width: 420px; margin: 0 auto 18px auto; padding-top: 80px; display: flex; flex-direction: column; gap: 10px;">
+      <input type="text" id="searchInput" placeholder="Buscar por legenda..." style="width:100%;padding:12px 18px;border-radius:18px;border:1.5px solid #e44f9c;font-size:1.1rem;outline:none;box-shadow:0 2px 8px #e44f9c11;">
+      <div id="sortSelector" style="display:flex;align-items:center;gap:8px;">
+        <label for="sortOption" style="font-size:1rem;color:#e44f9c;font-weight:500;">Ordenação:</label>
+        <select id="sortOption" style="flex:1;padding:8px 12px;border-radius:12px;border:1.5px solid #e44f9c;font-size:1rem;outline:none;">
+          <option value="date-desc" selected>Mais recentes primeiro</option>
+          <option value="date-asc">Mais antigos primeiro</option>
+          <option value="title-asc">Ordem alfabética (A-Z)</option>
+          <option value="title-desc">Ordem alfabética (Z-A)</option>
+        </select>
+      </div>
+    </div>
+    <!-- Galeria de fotos e vídeos -->
+    <div class="gallery" id="gallery" style="display:none;">
+      <!-- Itens da galeria são inseridos via JS -->
+    </div>
+  </main>
 
   <!-- Botão para abrir o modal de upload -->
   <button id="uploadBtn" aria-label="Adicionar foto ou vídeo">Adicionar foto/vídeo</button>
@@ -30,10 +76,27 @@
         <input type="file" id="media" name="media" accept="image/*,video/*" required>
         <label for="caption">Legenda:</label>
         <input type="text" id="caption" name="caption" placeholder="Digite uma legenda" maxlength="80" required>
-        <label for="password">Senha:</label>
-        <input type="password" id="password" name="password" placeholder="Digite a senha" required>
+        <label for="date">Data (opcional):</label>
+        <input type="date" id="date" name="date">
         <button type="submit">Enviar</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Viewer em tela cheia (lightbox) -->
+  <div class="fullscreen-modal" id="viewerModal" aria-hidden="true" style="display:none;">
+    <div class="viewer-content">
+      <button class="viewer-close" id="viewerClose" title="Fechar">&times;</button>
+      <div class="viewer-media" id="viewerMedia"></div>
+      <div class="viewer-info">
+        <p id="viewerCaption"></p>
+        <p id="viewerDate"></p>
+      </div>
+      <div class="viewer-controls">
+        <button id="viewerPrev" aria-label="Anterior">◀</button>
+        <button id="viewerFullscreen" aria-label="Tela cheia">⤢</button>
+        <button id="viewerNext" aria-label="Próximo">▶</button>
+      </div>
     </div>
   </div>
 

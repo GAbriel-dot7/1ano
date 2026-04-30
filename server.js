@@ -1,3 +1,4 @@
+
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
@@ -43,38 +44,65 @@ function saveData(data) {
 }
 
 // Rotas
-app.post('/upload', upload.single('media'), (req, res) => {
-  const media = req.file;
-  const caption = req.body.caption;
-  const password = req.body.password;
 
-  // Validação da senha
-  if (password !== 'robiju') {
+// Middleware para validar Authorization header
+function checkAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+  const token = auth.split(' ')[1];
+  if (token !== 'robiju') {
     return res.status(401).json({ error: 'Senha inválida' });
   }
+  next();
+}
 
+app.post('/upload', checkAuth, upload.single('media'), (req, res) => {
+  const media = req.file;
+  const caption = req.body.caption;
+  const date = req.body.date; // opcional
   // Salvar informações da mídia no arquivo JSON
   const data = readData();
   data[media.filename] = {
     caption: caption,
     url: `/uploads/${media.filename}`,
-    date: new Date().toISOString()
+    date: date || new Date().toISOString().slice(0,10) // ISO date (yyyy-mm-dd) se não enviado
   };
   saveData(data);
-
   res.status(200).json({ message: 'Upload realizado com sucesso' });
 });
 
 // Servir a lista de mídias para o frontend
-app.get('/gallery', (req, res) => {
+app.get('/gallery', checkAuth, (req, res) => {
   const data = readData();
   const mediaList = Object.keys(data).map(key => ({
     name: key,
     caption: data[key].caption,
     url: data[key].url,
-    date: data[key].date
+    date: data[key].date || null
   }));
   res.status(200).json(mediaList);
+});
+
+// Rota para apagar mídia
+app.delete('/media/:name', checkAuth, (req, res) => {
+  const name = req.params.name;
+  const data = readData();
+  if (!data[name]) {
+    return res.status(404).json({ error: 'Mídia não encontrada' });
+  }
+  // Apagar arquivo
+  const filePath = path.join(uploadDir, name);
+  fs.unlink(filePath, err => {
+    // Remove do JSON mesmo se o arquivo já não existir
+    delete data[name];
+    saveData(data);
+    if (err && err.code !== 'ENOENT') {
+      return res.status(500).json({ error: 'Erro ao apagar arquivo' });
+    }
+    res.status(200).json({ message: 'Mídia apagada' });
+  });
 });
 
 // Servir os arquivos de mídia
