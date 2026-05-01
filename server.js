@@ -52,7 +52,8 @@ function checkAuth(req, res, next) {
     return res.status(401).json({ error: 'Não autorizado' });
   }
   const token = auth.split(' ')[1];
-  if (token !== 'robiju') {
+  const expected = process.env.UPLOAD_PASS || 'robiju';
+  if (token !== expected) {
     return res.status(401).json({ error: 'Senha inválida' });
   }
   next();
@@ -107,9 +108,16 @@ app.delete('/media/:name', checkAuth, (req, res) => {
 
 // Servir os arquivos de mídia
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Servir arquivos estáticos do frontend (index.html, styles, script)
+app.use(express.static(path.join(__dirname)));
 
-// Iniciar o servidor
-const port = 3000;
+// Garantir que a raiz sirva o index.html explicitamente
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Iniciar o servidor (porta via env para plataformas como Render)
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor iniciado na porta ${port}`);
 });
