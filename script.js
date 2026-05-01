@@ -18,85 +18,79 @@ function getAuthHeader() {
 }
 
 function showLoginError() {
-  loginError.style.display = "block";
-  loginError.textContent = "Não é essa bobinha! É o nosso apelido carinhoso, você sabe!";
+  loginError.style.display = 'block';
+  loginModal.style.display = 'flex';
 }
 
 function showLogin() {
-  loginModal.style.display = "block";
-  galleryDiv.style.display = "none";
+  loginError.style.display = 'none';
+  loginModal.style.display = 'flex';
 }
 
 function hideLogin() {
-  loginModal.style.display = "none";
-  galleryDiv.style.display = "block";
+  loginError.style.display = 'none';
+  loginModal.style.display = 'none';
 }
 
-function logout() {
-  localStorage.removeItem(LOGIN_KEY);
-  localStorage.removeItem(AUTH_PASS_KEY);
-  showLogin();
-}
-
-loginForm.addEventListener("submit", async function(e) {
+// Login form handler
+loginForm.addEventListener('submit', async function(e) {
   e.preventDefault();
-  const pass = document.getElementById("loginPassword").value.trim();
+  const passInput = document.getElementById('loginPassword');
+  const pass = passInput ? passInput.value : '';
+  if (!pass) return;
   localStorage.setItem(AUTH_PASS_KEY, pass);
-  localStorage.setItem(LOGIN_KEY, "true");
-  loginError.style.display = "none";
-
+  localStorage.setItem(LOGIN_KEY, 'true');
+  hideLogin();
   const ok = await loadGallery();
-  if (ok) {
-    hideLogin();
-  } else {
+  if (!ok) {
+    // authentication failed on server
+    loginError.style.display = 'block';
+    localStorage.removeItem(AUTH_PASS_KEY);
+    localStorage.removeItem(LOGIN_KEY);
     showLogin();
-    showLoginError();
   }
 });
 
-// --- Modal de upload ---
-const modal = document.getElementById("uploadModal");
-const closeBtn = document.getElementsByClassName("close")[0];
-closeBtn.addEventListener("click", () => { modal.style.display = "none"; });
-modal.addEventListener("click", (event) => { if (event.target == modal) { modal.style.display = "none"; } });
-const openBtn = document.getElementById("uploadBtn");
-openBtn.addEventListener("click", () => {
-  if (!isAuthenticated()) { showLogin(); return; }
-  modal.style.display = "block";
-});
+// Upload modal and form handlers
+const uploadBtn = document.getElementById('uploadBtn');
+const uploadModal = document.getElementById('uploadModal');
+const uploadClose = uploadModal ? uploadModal.querySelector('.close') : null;
+const uploadForm = document.getElementById('uploadForm');
+if (uploadBtn) uploadBtn.addEventListener('click', () => { if (uploadModal) uploadModal.style.display = 'flex'; });
+if (uploadClose) uploadClose.addEventListener('click', () => { uploadModal.style.display = 'none'; });
+window.addEventListener('click', (ev) => { if (ev.target === uploadModal) uploadModal.style.display = 'none'; });
 
-const form = document.getElementById("uploadForm");
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!isAuthenticated()) { showLogin(); return; }
-  const media = document.getElementById("media").files[0];
-  const caption = document.getElementById("caption").value;
-  const date = document.getElementById("date").value;
-  if (!media || !caption) {
-    alert("Preencha todos os campos.");
+if (uploadForm) uploadForm.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const form = uploadForm;
+  const fileInput = document.getElementById('media');
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+    alert('Selecione um arquivo para enviar.');
     return;
   }
   const formData = new FormData();
-  formData.append("media", media);
-  formData.append("caption", caption);
-  if (date) formData.append("date", date);
+  formData.append('media', fileInput.files[0]);
+  const caption = document.getElementById('caption') ? document.getElementById('caption').value : '';
+  const date = document.getElementById('date') ? document.getElementById('date').value : '';
+  formData.append('caption', caption);
+  formData.append('date', date);
   try {
-    const response = await fetch("/upload", {
-      method: "POST",
+    const response = await fetch('/upload', {
+      method: 'POST',
       body: formData,
       headers: getAuthHeader()
     });
     const result = await response.json();
     if (response.ok) {
-      alert("Upload realizado com sucesso!");
+      alert('Upload realizado com sucesso!');
       form.reset();
-      modal.style.display = "none";
+      if (uploadModal) uploadModal.style.display = 'none';
       loadGallery();
     } else {
-      alert(result.error || "Erro ao enviar mídia.");
+      alert(result.error || 'Erro ao enviar mídia.');
     }
   } catch (err) {
-    alert("Erro de conexão com o servidor.");
+    alert('Erro de conexão com o servidor.');
   }
 });
 
@@ -108,25 +102,72 @@ let currentSort = "date-desc";
 
 
   function renderGallery(mediaList) {
+    galleryDiv.innerHTML = '';
     if (Array.isArray(mediaList) && mediaList.length > 0) {
-      // marcar lista atual exibida e renderizar com índice
       currentDisplayedList = mediaList;
-      galleryDiv.innerHTML = mediaList.map((media, idx) => {
+      mediaList.forEach((media, idx) => {
+        const mediaItem = document.createElement('div');
+        mediaItem.className = 'media-item';
+        mediaItem.setAttribute('data-index', idx);
+
+        const hiddenTitle = document.createElement('span');
+        hiddenTitle.className = 'media-title';
+        hiddenTitle.style.display = 'none';
+        hiddenTitle.textContent = media.caption || '';
+        mediaItem.appendChild(hiddenTitle);
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'media-thumb-wrap';
         const ext = media.name.split('.').pop().toLowerCase();
-        const mediaContent = (["mp4", "webm", "ogg"].includes(ext))
-          ? `<video src=\"${media.url}\" controls width=\"320\"></video>`
-          : `<img src=\"${media.url}\" alt=\"${media.caption}\" width=\"320\"/>`;
-        let dateHtml = "";
-        if (media.date) {
-          dateHtml = `<span class='media-date' style='display:block;color:#888;font-size:0.95em;margin-bottom:4px;'>📅 ${media.date}</span>`;
+        if (["mp4", "webm", "ogg"].includes(ext)) {
+          const v = document.createElement('video');
+          v.className = 'media-thumb';
+          v.src = media.url;
+          v.controls = true;
+          v.preload = 'metadata';
+          thumbWrap.appendChild(v);
+        } else {
+          const img = document.createElement('img');
+          img.className = 'media-thumb';
+          img.src = media.url;
+          img.alt = media.caption || '';
+          thumbWrap.appendChild(img);
         }
-        return `<div class='media-item' data-index='${idx}'>` +
-               `<span class=\"media-title\" style=\"display:none\">${media.caption}</span>` +
-               `${mediaContent}${dateHtml}<p>${media.caption}</p><button class='delete-btn' data-name='${media.name}'>🗑️ Apagar</button></div>`;
-      }).join("");
+
+        mediaItem.appendChild(thumbWrap);
+
+        if (media.date) {
+          const dateEl = document.createElement('span');
+          dateEl.className = 'media-date';
+          dateEl.style.display = 'block';
+          dateEl.style.color = '#888';
+          dateEl.style.fontSize = '0.95em';
+          dateEl.style.marginBottom = '4px';
+          dateEl.textContent = `📅 ${media.date}`;
+          mediaItem.appendChild(dateEl);
+        }
+
+        const captionP = document.createElement('p');
+        captionP.textContent = media.caption || '';
+        mediaItem.appendChild(captionP);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.setAttribute('data-name', media.name);
+        delBtn.textContent = '🗑️ Apagar';
+        mediaItem.appendChild(delBtn);
+
+        galleryDiv.appendChild(mediaItem);
+      });
     } else {
-      galleryDiv.innerHTML = "<p>Nenhuma mídia enviada ainda.</p>";
+      galleryDiv.innerHTML = '<p>Nenhuma mídia enviada ainda.</p>';
     }
+  }
+
+  function logout() {
+    localStorage.removeItem(LOGIN_KEY);
+    localStorage.removeItem(AUTH_PASS_KEY);
+    showLogin();
   }
 
   function applyFiltersAndSort() {
