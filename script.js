@@ -1,7 +1,7 @@
 
 // --- Autenticação simples ---
 const LOGIN_KEY = "autenticado";
-const LOGIN_PASS = "robiju";
+const AUTH_PASS_KEY = "uploadPass";
 
 const loginModal = document.getElementById("loginModal");
 const loginForm = document.getElementById("loginForm");
@@ -9,8 +9,19 @@ const loginError = document.getElementById("loginError");
 const galleryDiv = document.getElementById("gallery");
 
 function isAuthenticated() {
-  return localStorage.getItem(LOGIN_KEY) === "true";
+  return localStorage.getItem(LOGIN_KEY) === "true" && !!localStorage.getItem(AUTH_PASS_KEY);
 }
+
+function getAuthHeader() {
+  const pass = localStorage.getItem(AUTH_PASS_KEY) || "";
+  return { Authorization: `Bearer ${pass}` };
+}
+
+function showLoginError() {
+  loginError.style.display = "block";
+  loginError.textContent = "Não é essa bobinha! É o nosso apelido carinhoso, você sabe!";
+}
+
 function showLogin() {
   loginModal.style.display = "block";
   galleryDiv.style.display = "none";
@@ -23,20 +34,23 @@ function hideLogin() {
 
 function logout() {
   localStorage.removeItem(LOGIN_KEY);
+  localStorage.removeItem(AUTH_PASS_KEY);
   showLogin();
 }
 
-loginForm.addEventListener("submit", function(e) {
+loginForm.addEventListener("submit", async function(e) {
   e.preventDefault();
-  const pass = document.getElementById("loginPassword").value;
-  if (pass === LOGIN_PASS) {
-    localStorage.setItem(LOGIN_KEY, "true");
-    loginError.style.display = "none";
+  const pass = document.getElementById("loginPassword").value.trim();
+  localStorage.setItem(AUTH_PASS_KEY, pass);
+  localStorage.setItem(LOGIN_KEY, "true");
+  loginError.style.display = "none";
+
+  const ok = await loadGallery();
+  if (ok) {
     hideLogin();
-    loadGallery();
   } else {
-    loginError.style.display = "block";
-    loginError.textContent = "Não é essa bobinha! É o nosso apelido carinhoso, você sabe!";
+    showLogin();
+    showLoginError();
   }
 });
 
@@ -67,10 +81,10 @@ form.addEventListener("submit", async (event) => {
   formData.append("caption", caption);
   if (date) formData.append("date", date);
   try {
-    const response = await fetch("http://localhost:3000/upload", {
+    const response = await fetch("/upload", {
       method: "POST",
       body: formData,
-      headers: { Authorization: `Bearer ${LOGIN_PASS}` }
+      headers: getAuthHeader()
     });
     const result = await response.json();
     if (response.ok) {
@@ -100,8 +114,8 @@ let currentSort = "date-desc";
       galleryDiv.innerHTML = mediaList.map((media, idx) => {
         const ext = media.name.split('.').pop().toLowerCase();
         const mediaContent = (["mp4", "webm", "ogg"].includes(ext))
-          ? `<video src=\"http://localhost:3000${media.url}\" controls width=\"320\"></video>`
-          : `<img src=\"http://localhost:3000${media.url}\" alt=\"${media.caption}\" width=\"320\"/>`;
+          ? `<video src=\"${media.url}\" controls width=\"320\"></video>`
+          : `<img src=\"${media.url}\" alt=\"${media.caption}\" width=\"320\"/>`;
         let dateHtml = "";
         if (media.date) {
           dateHtml = `<span class='media-date' style='display:block;color:#888;font-size:0.95em;margin-bottom:4px;'>📅 ${media.date}</span>`;
@@ -154,24 +168,34 @@ let currentSort = "date-desc";
   }
 
   // Inicialização: garantir que ao carregar a galeria, filtros e ordenação sejam aplicados
-  function loadGallery() {
+  async function loadGallery() {
     if (!isAuthenticated()) {
       showLogin();
-      return;
+      return false;
     }
     galleryDiv.style.display = "block";
     galleryDiv.innerHTML = "<p>Carregando...</p>";
-    fetch("http://localhost:3000/gallery", {
-      headers: { Authorization: `Bearer ${LOGIN_PASS}` }
-    })
-      .then(response => response.json())
-      .then(mediaList => {
-        allMediaList = mediaList;
-        applyFiltersAndSort();
-      })
-      .catch(() => {
-        galleryDiv.innerHTML = "<p>Erro ao carregar galeria.</p>";
+    try {
+      const response = await fetch("/gallery", {
+        headers: getAuthHeader()
       });
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          showLoginError();
+        } else {
+          galleryDiv.innerHTML = "<p>Erro ao carregar galeria.</p>";
+        }
+        return false;
+      }
+      const mediaList = await response.json();
+      allMediaList = mediaList;
+      applyFiltersAndSort();
+      return true;
+    } catch (_) {
+      galleryDiv.innerHTML = "<p>Erro ao carregar galeria.</p>";
+      return false;
+    }
   }
 // Handler para apagar mídia
 document.addEventListener('click', async function(e) {
@@ -179,9 +203,9 @@ document.addEventListener('click', async function(e) {
     const name = e.target.getAttribute('data-name');
     if (confirm('Tem certeza que deseja apagar esta mídia?')) {
       try {
-        const response = await fetch(`http://localhost:3000/media/${encodeURIComponent(name)}`, {
+        const response = await fetch(`/media/${encodeURIComponent(name)}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${LOGIN_PASS}` }
+          headers: getAuthHeader()
         });
         if (response.ok) {
           loadGallery();
@@ -235,14 +259,14 @@ function showInViewer(media) {
   const ext = media.name.split('.').pop().toLowerCase();
   if (["mp4","webm","ogg"].includes(ext)) {
     const v = document.createElement('video');
-    v.src = `http://localhost:3000${media.url}`;
+    v.src = media.url;
     v.controls = true;
     v.autoplay = true;
     v.style.maxWidth = '100%';
     viewerMedia.appendChild(v);
   } else {
     const img = document.createElement('img');
-    img.src = `http://localhost:3000${media.url}`;
+    img.src = media.url;
     img.alt = media.caption || '';
     viewerMedia.appendChild(img);
   }
